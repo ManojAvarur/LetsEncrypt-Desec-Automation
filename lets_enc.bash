@@ -14,7 +14,6 @@ docker run --rm \
     --preferred-challenges dns \
     --manual-auth-hook /hooks/create_dns_record.sh \
     --manual-cleanup-hook /hooks/delete_dns_record.sh \
-    --manual-public-ip-logging-ok \
     -d "*.${DESEC_DOMAIN}" \
     -m user@example.com \
     --agree-tos \

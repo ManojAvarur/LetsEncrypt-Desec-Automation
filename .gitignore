@@ -1,2 +1,5 @@
 certbot-etc
 certbot-var
+.env
+logs
+letsencrypt

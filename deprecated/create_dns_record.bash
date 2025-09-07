@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -euo pipefail
 
@@ -8,53 +8,41 @@ VALIDATION="${CERTBOT_VALIDATION}"
 RECORD_NAME="_acme-challenge.${DOMAIN}"
 
 # Your deSEC credentials (should be set as environment variables)
-DESEC_TOKEN="${DESEC_TOKEN:-}"
-DESEC_DOMAIN="${DESEC_DOMAIN:-}"
+DESEC_DOMAIN=$(echo "$DESEC_DOMAIN" | tr -d '\r\n')
+DESEC_TOKEN=$(echo "$DESEC_TOKEN" | tr -d '\r\n')
 
 SLEEP_TIME=30
 MAX_ATTEMPTS=40
-
-if dpkg -l | grep -qw dnsutils; then
-    echo "dnsutils is already installed."
-else
-    echo "dnsutils not found. Installing..."
-    apt-get update -y
-    apt-get upgrade -y
-    apt-get install -y dnsutils
-fi
-
-if dpkg -l | grep -qw curl; then
-    echo "curl is already installed."
-else
-    echo "dnsutils not found. Installing..."
-    apt-get install -y curl
-fi
 
 if [[ -z "$DESEC_TOKEN" || -z "$DESEC_DOMAIN" ]]; then
     echo "Error: DESEC_TOKEN or DESEC_DOMAIN not set"
     exit 1
 fi
 
+payload=$(cat <<JSON
+{
+    "subname": "_acme-challenge",
+    "type": "TXT",
+    "ttl": 60,
+    "records": ["\"$VALIDATION\""]
+}
+JSON
+)
+
 echo "Creating DNS TXT record for ${RECORD_NAME} with value ${VALIDATION}"
 
 response=$(curl "https://desec.io/api/v1/domains/${DESEC_DOMAIN}/rrsets/" \
     --header "Authorization: Token ${DESEC_TOKEN}" \
     --header "Content-Type: application/json" \
-    --data @- <<EOF 
-    {
-        "subname": "_acme-challenge",
-        "type": "TXT",
-        "ttl": 60,
-        "records": ["\"$VALIDATION\""]
-    }
-EOF)
+    --data "$payload")
 
 
-if echo "$response" | grep -q '"created";'; then
+if echo "$response" | grep -q '"created"'; then
     echo "Successfully created DNS record."
 else
-    echo "Record may already exist. Response:"
+    echo "Creatation failed"
     echo "$response"
+    exit 1
 fi
 
 echo "Waiting for DNS to propagate..."

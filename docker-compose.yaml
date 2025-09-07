@@ -1,0 +1,19 @@
+services:
+  lets-encrypt:
+    container_name: lets-encrypt
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      # Mount letsencrypt directory to persist certificates
+      - ./letsencrypt:/etc/letsencrypt # If you want have copy of certificates localy uncomment this line
+      - ./logs:/var/log/letsencrypt
+    environment:
+      - DESEC_TOKEN=${DESEC_TOKEN}
+      - DESEC_DOMAIN=${DESEC_DOMAIN}
+      - EMAIL=${EMAIL}
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - GITHUB_USER=${GITHUB_USER}
+      - GITHUB_REPO=${GITHUB_REPO}
+      - TZ=${TZ}
+    restart: "no"

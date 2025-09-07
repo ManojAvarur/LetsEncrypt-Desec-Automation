@@ -1,14 +1,12 @@
-#!/bin/bash
-
-# delete_dns_record.sh for deSEC.io
-# Used by Certbot's --manual-cleanup-hook
+#!/usr/bin/env bash
 
 set -euo pipefail
 
 DOMAIN="${CERTBOT_DOMAIN}"
 RECORD_NAME="_acme-challenge.${DOMAIN}"
-DESEC_TOKEN="${DESEC_TOKEN:-}"
-DESEC_DOMAIN="${DESEC_DOMAIN:-}"
+
+DESEC_DOMAIN=$(echo "$DESEC_DOMAIN" | tr -d '\r\n')
+DESEC_TOKEN=$(echo "$DESEC_TOKEN" | tr -d '\r\n')
 
 if [[ -z "$DESEC_TOKEN" || -z "$DESEC_DOMAIN" ]]; then
     echo "Error: DESEC_TOKEN or DESEC_DOMAIN not set"

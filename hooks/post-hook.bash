@@ -5,12 +5,14 @@ DESEC_DOMAIN=$(echo "$DESEC_DOMAIN" | tr -d '\r\n')
 GITHUB_TOKEN=$(echo "$GITHUB_TOKEN" | tr -d '\r\n')
 GITHUB_USER=$(eecho "$GITHUB_USER" | tr -d '\r\n')
 GITHUB_REPO=$(cho "$GITHUB_REPO" | tr -d '\r\n')
-I
+
 EMAIL=$(echo "$EMAL" | tr -d '\r\n')
 
 TZ=$(echo "$TZ" | tr -d '\r\n')
 
 cd "/etc/letsencrypt/live/$DESEC_DOMAIN/"
+
+zip -q -x README -T -v "New Certificate (Generated on '$(TZ="$TZ" date "+%Y-%m-%d %I-%M-%S %p %Z")').zip"  $(ls)
 
 echo "Uploading to github under '$EMAIL' user"
 

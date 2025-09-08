@@ -6,8 +6,8 @@ services:
       dockerfile: Dockerfile
     volumes:
       # Mount letsencrypt directory to persist certificates
-      - ./letsencrypt:/etc/letsencrypt # If you want have copy of certificates localy uncomment this line
-      - ./logs:/var/log/letsencrypt
+      - ~/Documents/Docker/LetsEncrypt-Desec-Automation/letsencrypt:/etc/letsencrypt # If you don't want to have copy of certificates localy comment this line
+      - ~/Documents/Docker/LetsEncrypt-Desec-Automation/logs:/var/log/letsencrypt
     environment:
       - DESEC_TOKEN=${DESEC_TOKEN}
       - DESEC_DOMAIN=${DESEC_DOMAIN}

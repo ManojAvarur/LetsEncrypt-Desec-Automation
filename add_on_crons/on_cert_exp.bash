@@ -1,37 +1,62 @@
 #!/bin/bash
 
 # Certificate expiration checker script
-# Usage: ./on_cert_exp.bash -c cert1.pem -c cert2.pem --reduce-date 30 -f script.sh
-#        ./on_cert_exp.bash --certificate cert.pem --reduce-date 10 "echo 'Command executed'"
+# Usage: ./on_cert_exp.bash -c cert1.pem -c cert2.pem -do +30 -f script.sh
+#        ./on_cert_exp.bash --certificate cert.pem --days-offset 10 "echo 'Command executed'"
 
 set -e
 
 show_help() {
     cat << EOF
-Certificate Expiration Checker
+Code Executor on Certificate Expiration
 
 Usage: $0 [OPTIONS] [COMMAND]
 
 Options:
-  -c, --certificate PATH    Path to certificate file (can be used multiple times)
-  -rd, --reduce-date DAYS   Reduce current date by specified number of days (for testing)
-  -f, --file PATH           Path to bash script to execute if all certificates are valid
-  -h, --help                Display this help message
+  -c, --certificate   PATH          Path to certificate file (can be used multiple times)
+  -do, --days-offset  [+|- DAYS]    Offset current date by specified number of days
+  -f, --file PATH                   Path to bash script to execute if all certificates are valid
+  -h, --help                        Display this help message
 
 Arguments:
-  COMMAND                   Command to execute if all certificates are valid
-                           (cannot be used together with -f | --file)
+  COMMAND                       Command to execute if all certificates are valid
+                                (cannot be used together with -f | --file)
 
 Notes:
   - All certificates must be valid for the command/file to execute
-  - If any certificate is expired, execution is blocked
+  - Trailing command will be executed only if a certificate(s) is expired
+  - Please make sure to use this script on a per-domain basis
 
 EOF
     exit 0
 }
 
+validate_date_offset() {
+    local do_value=$1
+    
+    if [[ -z "$do_value" ]]; then
+        echo "Error: DO value is empty"
+        return 1
+    fi
+    
+    if [[ ! "$do_value" =~ ^[+-][0-9]+$ ]]; then
+        echo "Error: Invalid date-offset format. Must be +N or -N (e.g., +1, -5)"
+        return 1
+    fi
+    
+    local number="${do_value:1}"
+    
+    # Optional: Check if number is within reasonable range
+    if [[ $number -gt 365 ]]; then
+        echo "Warning: DO value exceeds 365 days"
+        # return 1  # Uncomment to make this an error
+    fi
+    
+    return 0
+}
+
 declare -a CERTIFICATES=()
-REDUCE_DAYS=0
+DATE_OFFSET=0
 COMMAND=""
 FILE=""
 ALL_VALID=true
@@ -46,8 +71,11 @@ while [[ $# -gt 0 ]]; do
             CERTIFICATES+=("$2")
             shift 2
             ;;
-        -rd|--reduce-date)
-            REDUCE_DAYS="$2"
+        -do|--days-offset)
+            DATE_OFFSET="$2"
+            if ! validate_date_offset "$DATE_OFFSET" ; then
+                exit 1
+            fi
             shift 2
             ;;
         -f|--file)
@@ -77,13 +105,13 @@ if [ -z "$FILE" ] && [ -z "$COMMAND" ]; then
     exit 1
 fi
 
-# Calculate the effective current date (reduced by specified days)
+# Calculate the effective current date (reduced by specified days) 
 if [[ "$OSTYPE" == "darwin"* ]]; then
     # macOS
-    EFFECTIVE_DATE=$(date -v-${REDUCE_DAYS}d +%s)
+    EFFECTIVE_DATE=$(date -v${DATE_OFFSET}d +%s)
 else
     # Linux
-    EFFECTIVE_DATE=$(date -d "${REDUCE_DAYS} days ago" +%s)
+    EFFECTIVE_DATE=$(date -d "${DATE_OFFSET} days" +%s)
 fi
 
 echo "Checking certificates against date: $(date -d @${EFFECTIVE_DATE} 2>/dev/null || date -r ${EFFECTIVE_DATE})"
@@ -92,8 +120,7 @@ echo "----------------------------------------"
 for cert in "${CERTIFICATES[@]}"; do
     if [ ! -f "$cert" ]; then
         echo "ERROR: Certificate file not found: $cert"
-        ALL_VALID=false
-        continue
+        exi1 1
     fi
     
     echo "Checking: $cert"
@@ -102,8 +129,7 @@ for cert in "${CERTIFICATES[@]}"; do
     EXPIRY_DATE=$(openssl x509 -enddate -noout -in "$cert" | cut -d= -f2)
     
     if [ -z "$EXPIRY_DATE" ]; then
-        echo "  ERROR: Could not read expiration date"
-        ALL_VALID=false
+        echo "  ERROR: Could not read expiration date for: $cert"
         continue
     fi
     
@@ -133,9 +159,11 @@ echo "----------------------------------------"
 
 # Execute command or file if all certificates are valid
 if [ "$ALL_VALID" = true ]; then
-    echo "All certificates are valid. Executing command/file..."
+    echo "All certificates are valid. Command/file execution blocked"
     echo ""
-    
+else
+    echo "One or more certificates are expired. Executing command/file..."
+        
     if [ -n "$FILE" ]; then
         if [ ! -f "$FILE" ]; then
             echo "Error: File not found: $FILE"
@@ -149,7 +177,4 @@ if [ "$ALL_VALID" = true ]; then
     else
         eval "$COMMAND"
     fi
-else
-    echo "One or more certificates are expired or invalid. Command/file execution blocked."
-    exit 1
 fi

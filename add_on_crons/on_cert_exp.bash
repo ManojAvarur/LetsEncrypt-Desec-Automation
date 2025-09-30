@@ -4,6 +4,9 @@
 # Usage: ./on_cert_exp.bash -c cert1.pem -c cert2.pem -do +30 -f script.sh
 #        ./on_cert_exp.bash --certificate cert.pem --days-offset 10 "echo 'Command executed'"
 
+# CRON Sample which every day at 12 AM and stops nginx service if the certificate mentioned is expired
+# 0 0 * * * LOC=/home/user/LetsEncrypt-Desec-Automation/add_on_crons [ -f "${LOC}/on_cert_exp.bash" ] && /bin/bash "${LOC}/on_cert_exp.bash" -c /home/user/Documents/SSL/domain/cert.pem -do +1 'nginx -s stop' >> /var/log/on_cert_exp.log 2>&1
+
 set -e
 
 show_help() {

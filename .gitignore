@@ -3,3 +3,4 @@ certbot-var
 .env
 logs
 letsencrypt
+*.ini

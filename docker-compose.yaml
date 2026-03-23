@@ -8,12 +8,6 @@ services:
       # Mount letsencrypt directory to persist certificates
       - ~/Documents/Docker/LetsEncrypt-Desec-Automation/letsencrypt:/etc/letsencrypt # If you don't want to have copy of certificates localy comment this line
       - ~/Documents/Docker/LetsEncrypt-Desec-Automation/logs:/var/log/letsencrypt
-    environment:
-      - DESEC_TOKEN=${DESEC_TOKEN}
-      - DESEC_DOMAIN=${DESEC_DOMAIN}
-      - EMAIL=${EMAIL}
-      - GITHUB_TOKEN=${GITHUB_TOKEN}
-      - GITHUB_USER=${GITHUB_USER}
-      - GITHUB_REPO=${GITHUB_REPO}
-      - TZ=${TZ}
+    env_file:
+      - .env
     restart: "no"

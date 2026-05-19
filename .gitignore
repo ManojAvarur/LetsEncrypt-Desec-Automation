@@ -3,3 +3,5 @@ certbot-var
 .env
 logs
 letsencrypt
+certbot-pyenv
+certbot
